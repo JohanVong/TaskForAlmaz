@@ -27,21 +27,21 @@ INITIAL_STATUSES = ('planning', 'active', 'inactive', 'testing')
 STATUSES = ('planning', 'active', 'inactive', 'testing', 'completed')
 UNTOUCHABLE_STATUSES = ('completed', 'failed')
 
-def check_tasks(*args, **kwargs):
-    threading.Timer(10.0, check_tasks).start()
-    tasks = Task.objects.all()
-    for tsk in tasks:
-        if timezone.now() > tsk.planned_end and tsk.task_status not in UNTOUCHABLE_STATUSES:
-            tsk.task_status = 'failed'
-            tsk.save()
-            # отправляем уведомление оператору
-            opr = tsk.operator_id
-            print("Send notification to: " + str(opr.username) + ", Time is up for task '{0}'!".format(tsk.title))
-            # отправляем уведомления наблюдателям
-            rcps = tsk.observers_id.all()
-            for rcp in rcps:
-                print("Send notification to: " + str(rcp.username) + ", Time is up for task '{0}'!".format(tsk.title))
-    print("Checking statuses...")
+# def check_tasks(*args, **kwargs):
+#     threading.Timer(10.0, check_tasks).start()
+#     tasks = Task.objects.all()
+#     for tsk in tasks:
+#         if timezone.now() > tsk.planned_end and tsk.task_status not in UNTOUCHABLE_STATUSES:
+#             tsk.task_status = 'failed'
+#             tsk.save()
+#             # отправляем уведомление оператору
+#             opr = tsk.operator_id
+#             print("Send notification to: " + str(opr.username) + ", Time is up for task '{0}'!".format(tsk.title))
+#             # отправляем уведомления наблюдателям
+#             rcps = tsk.observers_id.all()
+#             for rcp in rcps:
+#                 print("Send notification to: " + str(rcp.username) + ", Time is up for task '{0}'!".format(tsk.title))
+#     print("Checking statuses...")
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()

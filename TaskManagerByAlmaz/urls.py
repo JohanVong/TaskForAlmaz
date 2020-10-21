@@ -12,4 +12,4 @@ urlpatterns = [
     path('auth/', obtain_auth_token),
 ]
 
-views.check_tasks()
+# views.check_tasks()
