@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -11,6 +12,8 @@ from rest_framework.response import Response
 from .models import Task, TaskStatusUpdate
 from .serializers import TaskSerializer, UserSerializer, TaskStatusUpdateSerializer
 
+import threading
+
 # Здесь ведется работа над механизмом, который периодически запрашивать все задания и если найдет
 # просроченные, то изменит их статус и отправит сообщения о просрочке оператору и наблюдателям
 
@@ -20,26 +23,25 @@ from .serializers import TaskSerializer, UserSerializer, TaskStatusUpdateSeriali
 # а еще с этим куском кода нельзя провести самую первую 'makemigrations' 
 # когда база данных только создана, поэтому он закомментирован
 
-# tasks = Task.objects.all()
-# for tsk in tasks:
-#     if timezone.now() > tsk.planned_end and tsk.task_status != 'failed':
-#         tsk.task_status = 'failed'
-#         tsk.save()
-#         # отправляем уведомление оператору
-#         opr = tsk.operator_id
-#         print("Send notification to: " + str(opr.username) + ", Time is up for task '{0}'!".format(tsk.title))
-#         # отправляем уведомления наблюдателям
-#         rcps = tsk.observers_id.all()
-#         for rcp in rcps:
-#             print("Send notification to: " + str(rcp.username) + ", Time is up for task '{0}'!".format(tsk.title))
+INITIAL_STATUSES = ('planning', 'active', 'inactive', 'testing')
+STATUSES = ('planning', 'active', 'inactive', 'testing', 'completed')
+UNTOUCHABLE_STATUSES = ('completed', 'failed')
 
-STATUSES = (
-    ('planning'),
-    ('active'),
-    ('inactive'),
-    ('testing'),
-    ('completed'),
-)
+def check_tasks(*args, **kwargs):
+    threading.Timer(10.0, check_tasks).start()
+    tasks = Task.objects.all()
+    for tsk in tasks:
+        if timezone.now() > tsk.planned_end and tsk.task_status not in UNTOUCHABLE_STATUSES:
+            tsk.task_status = 'failed'
+            tsk.save()
+            # отправляем уведомление оператору
+            opr = tsk.operator_id
+            print("Send notification to: " + str(opr.username) + ", Time is up for task '{0}'!".format(tsk.title))
+            # отправляем уведомления наблюдателям
+            rcps = tsk.observers_id.all()
+            for rcp in rcps:
+                print("Send notification to: " + str(rcp.username) + ", Time is up for task '{0}'!".format(tsk.title))
+    print("Checking statuses...")
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
@@ -72,7 +74,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         if 'task_status' in request.data:  
             task_status = request.data['task_status']
-            if task_status not in STATUSES:
+            if task_status not in INITIAL_STATUSES:
                 response = {'message': "Wrong status given"}
                 return Response(response, status=status.HTTP_400_BAD_REQUEST)
         else:
