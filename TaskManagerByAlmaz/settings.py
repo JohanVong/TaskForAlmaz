@@ -85,11 +85,11 @@ REST_FRAMEWORK = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'YOUR DATABASE NAME',
-        'USER': 'YOUR USER',
-        'PASSWORD': 'YOUR PASSWORD',
-        'HOST': 'YOUR HOST',
-        'PORT': 'YOUR PORT',
+        'NAME': 'your database',
+        'USER': 'your user',
+        'PASSWORD': 'your password',
+        'HOST': 'your host',
+        'PORT': '5432',
     }
 }
 
@@ -131,3 +131,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# REDIS
+REDIS_HOST = '0.0.0.0'
+REDIS_PORT = '6379'
+CELERY_BROKER_URL = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
+CELERY_RESULT_BACKEND = 'redis://' + REDIS_HOST + ':' + REDIS_PORT + '/0'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

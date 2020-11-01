@@ -1,8 +1,8 @@
 from django.contrib.auth.models import User
-
 from rest_framework import serializers
 
-from .models import Task, TaskStatusUpdate
+from .models import Task, TaskStatusUpdate, TaskReminder
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,6 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
+
 
 class TaskSerializer(serializers.ModelSerializer):
     operator_id = serializers.SlugRelatedField(slug_field='id', many=False, read_only=True)
@@ -27,6 +28,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'ended_at', 'planned_end'
         ]
 
+
 class TaskStatusUpdateSerializer(serializers.ModelSerializer):
     task_id = serializers.SlugRelatedField(slug_field='id', many=False, read_only=True)
     editor_id = serializers.SlugRelatedField(slug_field='id', many=False, read_only=True)
@@ -36,4 +38,15 @@ class TaskStatusUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'prev_status', 'next_status', 
             'task_id', 'editor_id', 'update_time'
+        ]
+
+
+class TaskReminderSerializer(serializers.ModelSerializer):
+    task_id = serializers.SlugRelatedField(slug_field='id', many=False, read_only=True)
+
+    class Meta:
+        model = TaskReminder
+        fields = [
+            'id', 'task_id', 'taskname', 
+            'recipients', 'is_failed'
         ]
