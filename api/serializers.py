@@ -24,7 +24,7 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'desc', 
             'operator_id', 'observers_id', 
-            'task_status', 'started_at', 
+            'task_status', 'started_at', 'last_update',
             'ended_at', 'planned_end'
         ]
 
@@ -48,5 +48,5 @@ class TaskReminderSerializer(serializers.ModelSerializer):
         model = TaskReminder
         fields = [
             'id', 'task_id', 'taskname', 
-            'recipients', 'is_failed'
+            'recipients', 'reason', 'sent_properly'
         ]

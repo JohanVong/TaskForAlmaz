@@ -19,6 +19,7 @@ class Task(models.Model):
     observers_id = models.ManyToManyField(User, related_name='%(class)s_id')
     task_status = models.CharField(max_length=64, null=False, blank=False, choices=STATUSES)
     started_at = models.DateTimeField(blank=True, null=True)
+    last_update = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     planned_end = models.DateTimeField(blank=True, null=True)
     objects = models.Manager()
@@ -43,7 +44,8 @@ class TaskReminder(models.Model):
     task_id = models.ForeignKey(Task, related_name='%(class)s_id', on_delete=models.CASCADE)
     taskname = models.CharField(max_length=256, blank=False, null=False, default='Unnamed')
     recipients = ArrayField(models.CharField(max_length=256, blank=False, null=False, default='Unnamed'))
-    is_failed = models.BooleanField(blank=True, null=True, default=False)
+    reason = models.CharField(max_length=32, blank=True, null=True, choices=STATUSES)
+    sent_properly = models.BooleanField(blank=True, null=True, default=False)
     objects = models.Manager()
 
     def __str__(self):

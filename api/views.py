@@ -29,26 +29,34 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['POST'], authentication_classes = [TokenAuthentication])
     def task_create(self, request, pk=None):
-        created_task = create_task(self, request, pk=None)
-        
-        if 'error' in created_task:
-            response = {'message': 'An error occurred', 'error': created_task, 'result': None}
+        try:
+            created_task = create_task(self, request, pk=None)
+            
+            if 'error' in created_task:
+                response = {'message': 'An error occurred', 'error': created_task, 'result': None}
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                response = {'message': 'Task created', 'error': None, 'result': created_task}
+                return Response(response, status=status.HTTP_200_OK)
+        except:
+            response = {'message': 'An error occurred', 'error': 'Unknown controller error', 'result': None}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            response = {'message': 'Task created', 'error': None, 'result': created_task}
-            return Response(response, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['PUT'], authentication_classes = [TokenAuthentication])
     def task_update(self, request, pk=None):
-        task_to_update = Task.objects.get(id=pk)
-        updated_task = update_task(self, request, task_to_update)
+        try:
+            task_to_update = Task.objects.get(id=pk)
+            updated_task = update_task(self, request, task_to_update)
 
-        if 'error' in updated_task:
-            response = {'message': 'An error occurred', 'error': updated_task, 'result': None}
+            if 'error' in updated_task:
+                response = {'message': 'An error occurred', 'error': updated_task, 'result': None}
+                return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                response = {'message': 'Task updated', 'error': None, 'result': updated_task}
+                return Response(response, status=status.HTTP_200_OK)
+        except:
+            response = {'message': 'An error occurred', 'error': 'Unknown controller error', 'result': None}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            response = {'message': 'Task updated', 'error': None, 'result': updated_task}
-            return Response(response, status=status.HTTP_200_OK)
         
 
 class TaskUpdatesViewSet(viewsets.ModelViewSet):

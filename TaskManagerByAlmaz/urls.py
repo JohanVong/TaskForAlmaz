@@ -11,5 +11,3 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('auth/', obtain_auth_token),
 ]
-
-# views.check_tasks()

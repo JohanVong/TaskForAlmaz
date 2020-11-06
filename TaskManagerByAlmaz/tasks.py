@@ -16,20 +16,25 @@ UNTOUCHABLE_STATUSES = ('completed', 'failed')
 
 
 @app.task
-def notify(emails, is_failed, pk=None):
+def notify(emails, reason, pk=None):
     tsk = Task.objects.get(id=pk)
     tsk_rmndr = TaskReminder.objects.create(
         task_id=tsk, taskname=tsk.title,
-        recipients=emails, is_failed=is_failed
+        recipients=emails, reason=reason
     )
     dict_obj = model_to_dict(tsk_rmndr)
     serialized = json.dumps(dict_obj)
     if len(tsk_rmndr.recipients) != 0:
-        r = requests.post('http://localhost:8080/send/mails', data=serialized)
+        header = {'X-Secret-Header':'$tjs%nju;zx42gfh'} 
+        r = requests.post('http://localhost:8080/send/mails', headers=header, data=serialized)
+
         if r.status_code == 200:
             print('Data was sent properly')
+            tsk_rmndr.sent_properly = True
         else:
             print('Data was not sent properly')
+            tsk_rmndr.sent_properly = False
+        tsk_rmndr.save()
     else:
         tsk_rmndr.delete()
         print('No data to send')
@@ -57,6 +62,6 @@ def check_tasks(*args, **kwargs):
                 prev_status=prev_status, next_status=tsk.task_status, 
                 task_id=tsk, editor_id=tsk.operator_id, update_time=timezone.now()
             )
-            notify(pk=tsk.id, emails=emails, is_failed=True)
+            notify(pk=tsk.id, emails=emails, reason=tsk.task_status)
     print("Checking statuses...")
     

@@ -7,10 +7,10 @@ from .models import Task, TaskStatusUpdate
 from .serializers import TaskSerializer, UserSerializer, TaskStatusUpdateSerializer, TaskReminderSerializer
 from TaskManagerByAlmaz.tasks import notify
 
-INITIAL_STATUSES = ('planning', 'active', 'inactive', 'testing')
-STATUSES = ('planning', 'active', 'inactive', 'testing', 'completed')\
 
-just_a_var = "Field 'planned_end' is mandatory in a request data, example: 2020-12-30T00:00:00Z"
+INITIAL_STATUSES = ('planning', 'active', 'inactive', 'testing')
+STATUSES = ('planning', 'active', 'inactive', 'testing', 'completed')
+
 
 def create_task(self, request, pk=None):
     try:
@@ -19,7 +19,7 @@ def create_task(self, request, pk=None):
         if 'title' in request.data:
             title = request.data['title']
         else:
-            response = 'Title is required error'
+            response = 'Title missing error'
             return response
 
         if 'desc' in request.data:
@@ -35,7 +35,7 @@ def create_task(self, request, pk=None):
                 response = 'Wrong status given error'
                 return response
         else:
-            response = 'Task status is required error'
+            response = 'Task status missing error'
             return response
 
         started_at = timezone.now()
@@ -45,7 +45,7 @@ def create_task(self, request, pk=None):
         if 'planned_end' in request.data:
             planned_end = request.data['planned_end']
         else:
-            response = 'Planned end is required error, clear example: 2020-12-30T00:00Z'
+            response = 'Planned end missing error, clear example: 2020-12-30T00:00Z'
             return response
 
         task = Task.objects.create(
@@ -74,7 +74,7 @@ def create_task(self, request, pk=None):
         return response
         
     except:
-        response = "Unknown error"
+        response = "Unknown service error"
         return response
 
 
@@ -86,11 +86,11 @@ def update_task(self, request, task_to_update):
         
         # Выполненные или проваленные задания нельзя редактировать
         if task_to_update.task_status == 'completed' or task_to_update.task_status == 'failed':
-            response = 'Completed or failed tasks are disabled for updates error'
+            response = 'Update restriction for completed or failed tasks error'
             return response
 
         if 'title' in request.data:
-            response = 'Task title can not be changed once it was created error'
+            response = 'Task title change restriction error'
             return response
 
         if 'desc' in request.data:
@@ -98,24 +98,25 @@ def update_task(self, request, task_to_update):
         
         # Только оператор может изменить статус задачи, за исключением
         # случая, когда задача истекла по времени т.е - провалена
-        # Примечание: Можно изменить в будущем
         operator_id = User.objects.get(id=user.id)
         if task_to_update.operator_id != operator_id:
-            response = "Only operator of a task can edit it error"
+            response = "Access restriction error"
             return response
                 
         if 'planned_end' in request.data:
             task_to_update.planned_end = request.data['planned_end']
         
-        # Если при обновлении задания ввести 'username' наблюдателей, 
-        # то этот новый список перепишет уже существующий
+        # Список наблюдателей заполняется путем передачи 'username' наблюдателя
+        # если добавить уже существующий 'username', он удалится из списка
         if 'observers_id' in request.data:
-            task_to_update.observers_id.clear()
             obs_list = request.data['observers_id']
             for obs in obs_list:
                 try:
                     observer = User.objects.get(username=obs)
-                    task_to_update.observers_id.add(observer)
+                    if observer in task_to_update.observers_id.all():
+                        task_to_update.observers_id.remove(observer)
+                    else:
+                        task_to_update.observers_id.add(observer)
                 except:
                     None
 
@@ -127,8 +128,12 @@ def update_task(self, request, task_to_update):
             if task_to_update.task_status == 'completed':
                 task_to_update.ended_at = timezone.now() 
         
+        task_to_update.last_update = timezone.now()
+        
         task_to_update.save()
 
+        # Создаем запись об обновлении и рассылаем уведомления, 
+        # если старый статус задачи не равен новому
         if prev_status != task_to_update.task_status:
             TaskStatusUpdate.objects.create(
                 prev_status=prev_status, next_status=task_to_update.task_status, 
@@ -137,13 +142,13 @@ def update_task(self, request, task_to_update):
             recipients = task_to_update.observers_id.all()
             for recipient in recipients:
                 emails.append(recipient.email)
-            notify.delay(pk=task_to_update.id, emails=emails, is_failed=False)
+            notify.delay(pk=task_to_update.id, emails=emails, reason=task_to_update.task_status)
             
         serializer = TaskSerializer(task_to_update, many=False)
         response = serializer.data
         return response
 
     except: 
-        response = "Unknown error"
+        response = "Unknown service error"
         return response
         
