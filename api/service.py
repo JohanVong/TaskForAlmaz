@@ -95,6 +95,7 @@ def update_task(self, request, task_to_update):
 
         if 'desc' in request.data:
             task_to_update.desc = request.data['desc']
+            task_to_update.last_update = timezone.now()
         
         # Только оператор может изменить статус задачи, за исключением
         # случая, когда задача истекла по времени т.е - провалена
@@ -105,6 +106,7 @@ def update_task(self, request, task_to_update):
                 
         if 'planned_end' in request.data:
             task_to_update.planned_end = request.data['planned_end']
+            task_to_update.last_update = timezone.now()
         
         # Список наблюдателей заполняется путем передачи 'username' наблюдателя
         # если добавить уже существующий 'username', он удалится из списка
@@ -113,6 +115,7 @@ def update_task(self, request, task_to_update):
             for obs in obs_list:
                 try:
                     observer = User.objects.get(username=obs)
+                    task_to_update.last_update = timezone.now()
                     if observer in task_to_update.observers_id.all():
                         task_to_update.observers_id.remove(observer)
                     else:
@@ -128,8 +131,6 @@ def update_task(self, request, task_to_update):
             if task_to_update.task_status == 'completed':
                 task_to_update.ended_at = timezone.now() 
         
-        task_to_update.last_update = timezone.now()
-        
         task_to_update.save()
 
         # Создаем запись об обновлении и рассылаем уведомления, 
@@ -143,6 +144,7 @@ def update_task(self, request, task_to_update):
             for recipient in recipients:
                 emails.append(recipient.email)
             notify.delay(pk=task_to_update.id, emails=emails, reason=task_to_update.task_status)
+            task_to_update.last_update = timezone.now()
             
         serializer = TaskSerializer(task_to_update, many=False)
         response = serializer.data
